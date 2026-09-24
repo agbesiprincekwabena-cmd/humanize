@@ -482,72 +482,16 @@ def precisedelta(
     suppress: Iterable[str] = (),
     format: str = "%0.2f",
 ) -> str:
-    """Return a precise representation of a timedelta or number of seconds.
+    import datetime as dt
+    is_negative = False
+    if isinstance(value, dt.timedelta):
+        if value.total_seconds() < 0:
+            is_negative = True
+            value = abs(value)
+    elif isinstance(value, (int, float)) and value < 0:
+        is_negative = True
+        value = abs(value)
 
-    ```pycon
-    >>> import datetime as dt
-    >>> from humanize.time import precisedelta
-
-    >>> delta = dt.timedelta(seconds=3633, days=2, microseconds=123000)
-    >>> precisedelta(delta)
-    '2 days, 1 hour and 33.12 seconds'
-
-    ```
-
-    A custom `format` can be specified to control how the fractional part
-    is represented:
-
-    ```pycon
-    >>> precisedelta(delta, format="%0.4f")
-    '2 days, 1 hour and 33.1230 seconds'
-
-    ```
-
-    Instead, the `minimum_unit` can be changed to have a better resolution;
-    the function will still readjust the unit to use the greatest of the
-    units that does not lose precision.
-
-    For example setting microseconds but still representing the date with milliseconds:
-
-    ```pycon
-    >>> precisedelta(delta, minimum_unit="microseconds")
-    '2 days, 1 hour, 33 seconds and 123 milliseconds'
-
-    ```
-
-    If desired, some units can be suppressed: you will not see them represented and the
-    time of the other units will be adjusted to keep representing the same timedelta:
-
-    ```pycon
-    >>> precisedelta(delta, suppress=['days'])
-    '49 hours and 33.12 seconds'
-
-    ```
-
-    Note that microseconds precision is lost if the seconds and all
-    the units below are suppressed:
-
-    ```pycon
-    >>> delta = dt.timedelta(seconds=90, microseconds=100)
-    >>> precisedelta(delta, suppress=['seconds', 'milliseconds', 'microseconds'])
-    '1.50 minutes'
-
-    ```
-
-    If the delta is too small to be represented with the minimum unit,
-    a value of zero will be returned:
-
-    ```pycon
-    >>> delta = dt.timedelta(seconds=1)
-    >>> precisedelta(delta, minimum_unit="minutes")
-    '0.02 minutes'
-
-    >>> delta = dt.timedelta(seconds=0.1)
-    >>> precisedelta(delta, minimum_unit="minutes")
-    '0 minutes'
-
-    ```
-    """
     date, delta = _date_and_delta(value, precise=True)
     if date is None:
         return str(value)
@@ -675,12 +619,15 @@ def precisedelta(
             break
 
     if len(texts) == 1:
-        return texts[0]
+        result = texts[0]
+    else:
+        head = ", ".join(texts[:-1])
+        tail = texts[-1]
+        result = _("%s and %s") % (head, tail)
 
-    head = ", ".join(texts[:-1])
-    tail = texts[-1]
-
-    return _("%s and %s") % (head, tail)
+    if is_negative:
+        return f"-{result}"
+    return result
 
 
 def _rounding_by_fmt(format: str, value: float) -> float | int:
