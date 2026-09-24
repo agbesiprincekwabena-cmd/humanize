@@ -483,6 +483,7 @@ def precisedelta(
     format: str = "%0.2f",
 ) -> str:
     import datetime as dt
+
     is_negative = False
     if isinstance(value, dt.timedelta):
         if value.total_seconds() < 0:
